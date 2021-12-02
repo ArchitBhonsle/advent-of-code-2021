@@ -1,4 +1,5 @@
 use aoc_runner_derive::{aoc, aoc_generator};
+use std::error::Error;
 
 type Movements = Vec<Movement>;
 
@@ -9,22 +10,22 @@ pub enum Movement {
 }
 
 #[aoc_generator(day2)]
-pub fn generator(input: &str) -> Movements {
+pub fn generator(input: &str) -> Result<Movements, Box<dyn Error>> {
     input
         .lines()
-        .map(|x| {
-            let mut contents = x.split(' ');
-            let direction = contents.next().unwrap();
-            let magnitude = contents.next().unwrap().parse().unwrap();
+        .map(|m| {
+            let mut contents = m.split(' ');
+            let direction = contents.next().ok_or("Direction not found")?;
+            let magnitude = contents.next().ok_or("Magnitude not found")?.parse()?;
 
-            match direction {
+            Ok(match direction {
                 "forward" => Movement::Forward(magnitude),
                 "up" => Movement::Up(magnitude),
                 "down" => Movement::Down(magnitude),
                 _ => unreachable!(),
-            }
+            })
         })
-        .collect()
+        .collect::<Result<Movements, Box<dyn Error>>>()
 }
 
 #[aoc(day2, part1)]
