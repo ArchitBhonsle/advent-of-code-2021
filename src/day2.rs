@@ -30,7 +30,28 @@ pub fn generator(input: &str) -> Result<Movements, Box<dyn Error>> {
 
 #[aoc(day2, part1)]
 pub fn solver_1(input: &Movements) -> isize {
-    let horizontal = input
+    let (mut horizontal, mut vertical) = (0, 0);
+
+    for m in input {
+        match m {
+            &Movement::Up(x) => {
+                vertical -= x;
+            }
+            &Movement::Down(x) => {
+                vertical += x;
+            }
+            &Movement::Forward(x) => {
+                horizontal += x;
+            }
+        }
+    }
+
+    horizontal * vertical
+}
+
+#[aoc(day2, part1, Filters)]
+pub fn solver_1_filters(input: &Movements) -> isize {
+    let horizontal: isize = input
         .iter()
         .filter(|x| match x {
             &Movement::Forward(_) => true,
@@ -40,9 +61,9 @@ pub fn solver_1(input: &Movements) -> isize {
             &Movement::Forward(x) => x,
             _ => unreachable!(),
         })
-        .sum::<isize>();
+        .sum();
 
-    let vertical = input
+    let vertical: isize = input
         .iter()
         .filter(|x| match x {
             &Movement::Forward(_) => false,
@@ -53,27 +74,29 @@ pub fn solver_1(input: &Movements) -> isize {
             &Movement::Down(x) => x,
             _ => unreachable!(),
         })
-        .sum::<isize>() as isize;
+        .sum();
 
     horizontal * vertical
 }
 
 #[aoc(day2, part2)]
 pub fn solver_2(input: &Movements) -> isize {
-    let (mut aim, mut horizontal, mut vertical) = (0isize, 0isize, 0isize);
+    let (mut aim, mut horizontal, mut vertical) = (0, 0, 0);
 
-    input.iter().for_each(|m| match m {
-        &Movement::Up(x) => {
-            aim -= x;
+    for m in input {
+        match m {
+            &Movement::Up(x) => {
+                aim -= x;
+            }
+            &Movement::Down(x) => {
+                aim += x;
+            }
+            &Movement::Forward(x) => {
+                horizontal += x;
+                vertical += aim * x;
+            }
         }
-        &Movement::Down(x) => {
-            aim += x;
-        }
-        &Movement::Forward(x) => {
-            horizontal += x;
-            vertical += aim * x;
-        }
-    });
+    }
 
     horizontal * vertical
 }
