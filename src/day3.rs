@@ -1,49 +1,7 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
-#[aoc_generator(day3, part1)]
-pub fn generator_1(input: &str) -> (Vec<String>, usize) {
-    let input: Vec<String> = input.lines().map(|line| line.to_string()).collect();
-    let width = input[0].trim().len();
-
-    (input, width)
-}
-
-#[aoc(day3, part1)]
-pub fn solver_1(input: &(Vec<String>, usize)) -> usize {
-    let (input, width) = input;
-
-    let mut count = vec![(0, 0); *width];
-    for num in input.iter() {
-        for (ind, bit) in num.char_indices() {
-            if bit == '0' {
-                count[ind].0 += 1;
-            } else {
-                count[ind].1 += 1;
-            }
-        }
-    }
-
-    let (mut gamma, mut epsilon) = (String::new(), String::new());
-    for (zeros, ones) in count {
-        if ones > zeros {
-            gamma += "1";
-            epsilon += "0";
-        } else {
-            gamma += "0";
-            epsilon += "1";
-        }
-    }
-
-    let (gamma, epsilon) = (
-        usize::from_str_radix(&gamma, 2).unwrap(),
-        usize::from_str_radix(&epsilon, 2).unwrap(),
-    );
-
-    gamma * epsilon
-}
-
-#[aoc_generator(day3, part2)]
-pub fn generator_2(input: &str) -> (Vec<usize>, usize) {
+#[aoc_generator(day3)]
+pub fn generator(input: &str) -> (Vec<usize>, usize) {
     let width = input.lines().map(|line| line.len()).max().unwrap();
     let input: Vec<usize> = input
         .lines()
@@ -57,6 +15,10 @@ fn nth_bit(num: &usize, n: usize, width: usize) -> bool {
     num & (1 << (width - n - 1)) != 0
 }
 
+fn set_nth_bit(num: &mut usize, n: usize, width: usize) {
+    *num |= 1 << (width - n - 1)
+}
+
 fn most_common_nth_bit(nums: &Vec<usize>, n: usize, width: usize) -> bool {
     let zeros = nums.iter().filter(|num| !nth_bit(num, n, width)).count();
     let ones = nums.iter().filter(|num| nth_bit(num, n, width)).count();
@@ -64,6 +26,22 @@ fn most_common_nth_bit(nums: &Vec<usize>, n: usize, width: usize) -> bool {
     ones >= zeros
 }
 
+#[aoc(day3, part1)]
+pub fn solver_1(input: &(Vec<usize>, usize)) -> usize {
+    let (input, width) = input;
+
+    let (mut gamma, mut epsilon) = (0usize, 0usize);
+    for n in 0..*width {
+        let mncb = most_common_nth_bit(input, n, *width);
+        if mncb {
+            set_nth_bit(&mut gamma, n, *width);
+        } else {
+            set_nth_bit(&mut epsilon, n, *width);
+        }
+    }
+
+    gamma * epsilon
+}
 #[aoc(day3, part2)]
 pub fn solver_2(input: &(Vec<usize>, usize)) -> usize {
     let (input, width) = input;
@@ -114,7 +92,16 @@ mod test {
     }
 
     #[test]
-    fn test_example() {
+    fn test_set_nth_bit() {
+        let mut num = 0;
+        let width = 4;
+        set_nth_bit(&mut num, 0, width);
+        set_nth_bit(&mut num, 2, width);
+        assert_eq!(num, 0b1010);
+    }
+
+    #[test]
+    fn test_example_2() {
         let example = r"00100
 11110
 10110
@@ -127,7 +114,7 @@ mod test {
 11001
 00010
 01010";
-        let result = solver_2(&generator_2(example));
+        let result = solver_2(&generator(example));
 
         assert_eq!(result, 230);
     }
