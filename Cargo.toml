@@ -1,6 +1,7 @@
 [package]
 name = "advent-of-code-2021"
 authors = ["Archit Bhonsle <abhonsle2000@gmail.com>"]
+description = "My rusty solutions to Advent of Code 2021"
 version = "0.1.0"
 edition = "2021"
 
