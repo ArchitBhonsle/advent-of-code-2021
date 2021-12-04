@@ -155,12 +155,7 @@ pub fn solver_2(game: &Game) -> usize {
         }
 
         // remove all the boards that won
-        game.boards = game
-            .boards
-            .iter()
-            .filter(|board| !board.check())
-            .map(|board| board.clone())
-            .collect();
+        game.boards.retain(|board| !board.check())
     }
 
     last_score.unwrap()

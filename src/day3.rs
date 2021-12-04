@@ -42,6 +42,7 @@ pub fn solver_1(input: &(Vec<usize>, usize)) -> usize {
 
     gamma * epsilon
 }
+
 #[aoc(day3, part2)]
 pub fn solver_2(input: &(Vec<usize>, usize)) -> usize {
     let (input, width) = input;
@@ -49,11 +50,7 @@ pub fn solver_2(input: &(Vec<usize>, usize)) -> usize {
     let mut oxygen_generator = input.clone();
     for n in 0..*width {
         let mcnb = most_common_nth_bit(&oxygen_generator, n, *width);
-
-        oxygen_generator = oxygen_generator
-            .into_iter()
-            .filter(|num| nth_bit(num, n, *width) == mcnb)
-            .collect();
+        oxygen_generator.retain(|num| nth_bit(num, n, *width) == mcnb);
 
         if oxygen_generator.len() == 1 {
             break;
@@ -64,10 +61,7 @@ pub fn solver_2(input: &(Vec<usize>, usize)) -> usize {
     let mut co2_scrubber = input.clone();
     for n in 0..*width {
         let mcnb = most_common_nth_bit(&co2_scrubber, n, *width);
-        co2_scrubber = co2_scrubber
-            .into_iter()
-            .filter(|num| nth_bit(num, n, *width) != mcnb)
-            .collect();
+        co2_scrubber.retain(|num| nth_bit(num, n, *width) != mcnb);
 
         if co2_scrubber.len() == 1 {
             break;
