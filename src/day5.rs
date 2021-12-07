@@ -2,16 +2,8 @@ use std::str::FromStr;
 use std::{cmp, error::Error};
 
 use aoc_runner_derive::{aoc, aoc_generator};
-use itertools::Itertools;
 
-fn minmax<T: Ord + Clone>(x: &T, y: &T) -> (T, T) {
-    (
-        cmp::min(x.clone(), y.clone()),
-        cmp::max(x.clone(), y.clone()),
-    )
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Point {
     x: isize,
     y: isize,
@@ -52,67 +44,54 @@ impl Line {
         }
     }
 
-    fn get_intersection_length(&self, other: &Self) -> isize {
-        // check if intersecting but parallel
-
-        // if they are vertical
-        if self.is_vertical() && other.is_vertical() && self.start.x == other.start.x {
-            let (self_min, self_max) = minmax(&self.start.x, &self.start.x);
-            let (other_min, other_max) = minmax(&other.start.x, &other.start.x);
-
-            return cmp::min(self_max, other_max) - cmp::max(self_min, other_min);
-        }
-
-        // if they are horizontal
-        if self.is_horizontal() && other.is_horizontal() && self.start.y == other.start.y {
-            let (self_min, self_max) = minmax(&self.start.y, &self.start.y);
-            let (other_min, other_max) = minmax(&other.start.y, &other.start.y);
-
-            return cmp::min(self_max, other_max) - cmp::max(self_min, other_min);
-        }
-
-        // if intersecting but not parallel
-        let (self_min, self_max) = minmax(&self.start.x, &self.end.x);
-        if self_min <= other.start.y && other.start.y <= self_max {
-            return 1;
-        }
-
-        0
+    fn slope(&self) -> (isize, isize) {
+        (
+            match cmp::Ord::cmp(&self.start.x, &self.end.x) {
+                cmp::Ordering::Less => -1,
+                cmp::Ordering::Equal => 0,
+                cmp::Ordering::Greater => 1,
+            },
+            match cmp::Ord::cmp(&self.start.y, &self.end.y) {
+                cmp::Ordering::Less => -1,
+                cmp::Ordering::Equal => 0,
+                cmp::Ordering::Greater => 1,
+            },
+        )
     }
 
     fn contains(&self, p: &Point) -> bool {
-        let x_inc = match Ord::cmp(&self.start.x, &self.end.x) {
-            cmp::Ordering::Less => 1,
-            cmp::Ordering::Equal => 0,
-            cmp::Ordering::Greater => -1,
-        };
-        let y_inc = match Ord::cmp(&self.start.y, &self.end.y) {
-            cmp::Ordering::Less => 1,
-            cmp::Ordering::Equal => 0,
-            cmp::Ordering::Greater => -1,
-        };
-        let (mut x, mut y) = (self.start.x, self.start.y);
-        let mut res = false;
-
-        // println!("{:?} {} {} => {} {}", self, x_inc, y_inc, p.x, p.y);
-        loop {
-            // println!("{} {} {} {}", x, y, p.x, p.y);
-            if x == p.x && y == p.y {
-                res = true;
-                break;
-            }
-
-            x += x_inc;
-            y += y_inc;
-
-            if self.end.x == x && self.end.y == y {
-                if x == p.x && y == p.y {
-                    res = true;
-                }
-                break;
-            }
+        // points at the beginning and the end of the line will give weird slopes
+        // so we take care of this first
+        if &self.start == p || p == &self.end {
+            return true;
         }
-        res
+
+        let to_p = Line {
+            start: self.start.clone(),
+            end: p.clone(),
+        };
+
+        let slope = self.slope();
+        let to_p_slope = to_p.slope();
+        if slope != to_p_slope {
+            return false;
+        }
+
+        // these combined with the above slope check confirm that the point `p` is inside the rectangle
+        // created by `self.start` and `self.end`
+        let x_bounds = (p.x - self.start.x).abs() < (self.end.x - self.start.x).abs();
+        let y_bounds = (p.y - self.start.y).abs() < (self.end.y - self.start.y).abs();
+
+        if slope.0 == 0 {
+            y_bounds
+        } else if slope.1 == 0 {
+            x_bounds
+        } else {
+            x_bounds
+                && y_bounds
+                && ((p.x - self.start.x) / slope.0 == (p.y - self.start.y) / slope.1)
+            // checks if the point is on the line
+        }
     }
 }
 
@@ -135,16 +114,6 @@ pub fn generator(input: &str) -> Result<Vec<Line>, Box<dyn Error>> {
 
 #[aoc(day5, part1)]
 pub fn solver_1(lines: &Vec<Line>) -> isize {
-    lines
-        .iter()
-        .filter(|line| line.is_vertical() || line.is_horizontal())
-        .tuple_combinations()
-        .map(|(line1, line2)| Line::get_intersection_length(&line1, &line2))
-        .sum()
-}
-
-#[aoc(day5, part1, ugly)]
-pub fn solver_1_ugly(lines: &Vec<Line>) -> isize {
     let lines = lines
         .iter()
         .filter(|line| line.is_horizontal() || line.is_vertical())
@@ -155,14 +124,17 @@ pub fn solver_1_ugly(lines: &Vec<Line>) -> isize {
         .iter()
         .map(|line| cmp::max(line.start.x, line.end.x))
         .max()
-        .unwrap();
+        .unwrap()
+        + 1;
     let max_y = lines
         .iter()
         .map(|line| cmp::max(line.start.y, line.end.y))
         .max()
-        .unwrap();
+        .unwrap()
+        + 1;
 
     let mut res = 0;
+
     for x in 0..max_x {
         for y in 0..max_y {
             let mut count = 0;
@@ -183,8 +155,8 @@ pub fn solver_1_ugly(lines: &Vec<Line>) -> isize {
     res
 }
 
-#[aoc(day5, part2, ugly)]
-pub fn solver_2_ugly(lines: &Vec<Line>) -> isize {
+#[aoc(day5, part2)]
+pub fn solver_2(lines: &Vec<Line>) -> isize {
     let max_x = lines
         .iter()
         .map(|line| cmp::max(line.start.x, line.end.x))
@@ -198,9 +170,6 @@ pub fn solver_2_ugly(lines: &Vec<Line>) -> isize {
         .max()
         .unwrap()
         + 1;
-    // dbg!(max_x, max_y);
-
-    // let mut matrix = vec![vec![0; max_x as usize]; max_y as usize];
 
     let mut res = 0;
     for x in 0..max_x {
@@ -208,7 +177,6 @@ pub fn solver_2_ugly(lines: &Vec<Line>) -> isize {
             let mut count = 0;
             for line in lines.iter() {
                 if line.contains(&Point { x, y }) {
-                    // matrix[y as usize][x as usize] += 1;
                     count += 1
                 }
                 if count > 1 {
@@ -220,26 +188,14 @@ pub fn solver_2_ugly(lines: &Vec<Line>) -> isize {
             }
         }
     }
-    // println!(
-    //     "{}",
-    //     matrix
-    //         .into_iter()
-    //         .map(|row| {
-    //             row.into_iter()
-    //                 .map(|num| num.to_string())
-    //                 .collect::<Vec<String>>()
-    //                 .join(" ")
-    //         })
-    //         .collect::<Vec<String>>()
-    //         .join("\n")
-    // );
 
     res
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
+
     const INPUT: &str = r"0,9 -> 5,9
     8,0 -> 0,8
     9,4 -> 3,4
@@ -252,41 +208,31 @@ mod test {
     5,5 -> 8,2";
 
     #[test]
-    //     fn example_1() {
-    //         let lines = generator(INPUT).unwrap();
-    //         let result = solver_1(&lines);
+    fn test_contains() {
+        let check = |line, point| {
+            assert!(Line::from_str(line)
+                .unwrap()
+                .contains(&Point::from_str(point).unwrap()));
+        };
 
-    //         assert_eq!(result, 5);
-    //     }
+        check("0,0 -> 10,10", "5,5");
+        check("10,10 -> 0,0", "5,5");
+        check("0,10 -> 10,0", "5,5");
+        check("10,0 -> 0,10", "5,5");
+    }
 
-    //     #[test]
-    //     fn example_1_ugly() {
-    //         let lines = generator(INPUT).unwrap();
-    //         let result = solver_1_ugly(&lines);
-
-    //         assert_eq!(result, 5);
-    //     }
-
-    // #[test]
-    // fn test_contains() {
-    //     assert!(Line::from_str("0,0 -> 10,10")
-    //         .unwrap()
-    //         .contains(&Point::from_str("5,5").unwrap()));
-    //     assert!(Line::from_str("10,10 -> 0,0")
-    //         .unwrap()
-    //         .contains(&Point::from_str("5,5").unwrap()));
-    //     assert!(Line::from_str("0,10 -> 10,0")
-    //         .unwrap()
-    //         .contains(&Point::from_str("5,5").unwrap()));
-    //     assert!(Line::from_str("10,0 -> 0,10")
-    //         .unwrap()
-    //         .contains(&Point::from_str("5,5").unwrap()));
-    // }
     #[test]
-    fn example_2_ugly() {
-        println!("started");
+    fn test_example_1() {
         let lines = generator(INPUT).unwrap();
-        let result = solver_2_ugly(&lines);
+        let result = solver_1(&lines);
+
+        assert_eq!(result, 5);
+    }
+
+    #[test]
+    fn test_example_2() {
+        let lines = generator(INPUT).unwrap();
+        let result = solver_2(&lines);
 
         assert_eq!(result, 12);
     }
