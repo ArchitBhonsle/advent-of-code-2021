@@ -112,31 +112,22 @@ pub fn generator(input: &str) -> Result<Vec<Line>, Box<dyn Error>> {
     input.lines().map(|line| Ok(line.trim().parse()?)).collect()
 }
 
-#[aoc(day5, part1)]
-pub fn solver_1(lines: &Vec<Line>) -> isize {
-    let lines = lines
-        .iter()
-        .filter(|line| line.is_horizontal() || line.is_vertical())
-        .map(|line| line.clone())
-        .collect::<Vec<Line>>();
-
+fn count_intersections_imperative(lines: &Vec<Line>) -> usize {
     let max_x = lines
         .iter()
         .map(|line| cmp::max(line.start.x, line.end.x))
         .max()
-        .unwrap()
-        + 1;
+        .unwrap();
     let max_y = lines
         .iter()
         .map(|line| cmp::max(line.start.y, line.end.y))
         .max()
-        .unwrap()
-        + 1;
+        .unwrap();
 
     let mut res = 0;
 
-    for x in 0..max_x {
-        for y in 0..max_y {
+    for x in 0..=max_x {
+        for y in 0..=max_y {
             let mut count = 0;
             for line in lines.iter() {
                 if line.contains(&Point { x, y }) {
@@ -155,41 +146,61 @@ pub fn solver_1(lines: &Vec<Line>) -> isize {
     res
 }
 
-#[aoc(day5, part2)]
-pub fn solver_2(lines: &Vec<Line>) -> isize {
+fn count_intersections_functional(lines: &Vec<Line>) -> usize {
     let max_x = lines
         .iter()
         .map(|line| cmp::max(line.start.x, line.end.x))
         .max()
-        .unwrap()
-        + 1;
-
+        .unwrap() as usize;
     let max_y = lines
         .iter()
         .map(|line| cmp::max(line.start.y, line.end.y))
         .max()
-        .unwrap()
-        + 1;
+        .unwrap() as usize;
 
-    let mut res = 0;
-    for x in 0..max_x {
-        for y in 0..max_y {
-            let mut count = 0;
-            for line in lines.iter() {
-                if line.contains(&Point { x, y }) {
-                    count += 1
-                }
-                if count > 1 {
-                    break;
-                }
-            }
-            if count > 1 {
-                res += 1;
-            }
-        }
-    }
+    (0..=max_x)
+        .map(|x| (0..=max_y).map(move |y| (x as isize, y as isize)))
+        .flatten()
+        .filter(|(x, y)| {
+            lines
+                .iter()
+                .filter(|line| line.contains(&Point { x: *x, y: *y }))
+                .count()
+                > 1
+        })
+        .count()
+}
 
-    res
+#[aoc(day5, part1, Imperative)]
+pub fn solver_1_imperative(lines: &Vec<Line>) -> usize {
+    let lines = lines
+        .iter()
+        .filter(|line| line.is_horizontal() || line.is_vertical())
+        .map(|line| line.clone())
+        .collect::<Vec<Line>>();
+
+    count_intersections_imperative(&lines)
+}
+
+#[aoc(day5, part1, Functional)]
+pub fn solver_1_functional(lines: &Vec<Line>) -> usize {
+    let lines = lines
+        .iter()
+        .filter(|line| line.is_horizontal() || line.is_vertical())
+        .map(|line| line.clone())
+        .collect::<Vec<Line>>();
+
+    count_intersections_functional(&lines)
+}
+
+#[aoc(day5, part2, Imperative)]
+pub fn solver_2_imperative(lines: &Vec<Line>) -> usize {
+    count_intersections_imperative(lines)
+}
+
+#[aoc(day5, part2, Functional)]
+pub fn solver_2_functional(lines: &Vec<Line>) -> usize {
+    count_intersections_functional(lines)
 }
 
 #[cfg(test)]
@@ -197,15 +208,15 @@ mod tests {
     use super::*;
 
     const INPUT: &str = r"0,9 -> 5,9
-    8,0 -> 0,8
-    9,4 -> 3,4
-    2,2 -> 2,1
-    7,0 -> 7,4
-    6,4 -> 2,0
-    0,9 -> 2,9
-    3,4 -> 1,4
-    0,0 -> 8,8
-    5,5 -> 8,2";
+8,0 -> 0,8
+9,4 -> 3,4
+2,2 -> 2,1
+7,0 -> 7,4
+6,4 -> 2,0
+0,9 -> 2,9
+3,4 -> 1,4
+0,0 -> 8,8
+5,5 -> 8,2";
 
     #[test]
     fn test_contains() {
@@ -224,16 +235,20 @@ mod tests {
     #[test]
     fn test_example_1() {
         let lines = generator(INPUT).unwrap();
-        let result = solver_1(&lines);
+        let result_imperative = solver_1_imperative(&lines);
+        let result_functional = solver_1_functional(&lines);
 
-        assert_eq!(result, 5);
+        assert_eq!(result_imperative, 5);
+        assert_eq!(result_functional, 5);
     }
 
     #[test]
     fn test_example_2() {
         let lines = generator(INPUT).unwrap();
-        let result = solver_2(&lines);
+        let result_imperative = solver_1_imperative(&lines);
+        let result_functional = solver_1_functional(&lines);
 
-        assert_eq!(result, 12);
+        assert_eq!(result_imperative, 12);
+        assert_eq!(result_functional, 12);
     }
 }
