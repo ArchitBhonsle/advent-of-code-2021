@@ -98,16 +98,14 @@ fn get_set_basin(
 pub fn solver_2(cave: &Cave) -> usize {
     let mut basin_map: HashMap<CaveIndex, CaveIndex> = HashMap::new();
 
-    for row in 0..cave.rows {
-        for col in 0..cave.cols {
-            let index = (row as isize, col as isize);
-            if cave.index(index).unwrap() == 9 {
-                continue;
-            }
-
+    (0..cave.rows)
+        .into_iter()
+        .flat_map(|row| (0..cave.cols).into_iter().map(move |col| (row, col)))
+        .map(|(row, col)| (row as isize, col as isize))
+        .filter(|index| cave.index(*index).unwrap() != 9)
+        .for_each(|index| {
             get_set_basin(&mut basin_map, cave, index);
-        }
-    }
+        });
 
     let mut basin_size_map: HashMap<CaveIndex, usize> = HashMap::new();
     basin_map.values().for_each(|basin| {
