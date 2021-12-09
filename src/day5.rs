@@ -245,8 +245,8 @@ mod tests {
     #[test]
     fn test_example_2() {
         let lines = generator(INPUT).unwrap();
-        let result_imperative = solver_1_imperative(&lines);
-        let result_functional = solver_1_functional(&lines);
+        let result_imperative = solver_2_imperative(&lines);
+        let result_functional = solver_2_functional(&lines);
 
         assert_eq!(result_imperative, 12);
         assert_eq!(result_functional, 12);
